@@ -1,6 +1,7 @@
 import os
 import random
 import numpy as np
+import PIL
 from PIL import Image
 import matplotlib.pyplot as plt
 
@@ -32,7 +33,7 @@ bayer = np.array(Image.open("source/bayer16x16.png"))[:,:,0].astype(float) / 255
 # Make histograms
 figure, axis = plt.subplots(2, 2)
 
-figure.suptitle("Histograms of 16x16 Textures (256 buckets)")
+figure.suptitle("16x16 Texture Histograms, 256 buckets")
 
 axis[0,0].set_title("IGN")
 axis[0,0].set_xlabel("Value")
@@ -56,3 +57,22 @@ axis[1,1].hist(bayer.reshape(256), 256, facecolor='blue', alpha=0.5)
 
 figure.tight_layout()
 figure.savefig("out/_histogram.png")#, bbox_inches='tight')
+
+noiseTypes = [
+    IGN,
+    blueNoise,
+    whiteNoise,
+    bayer
+]
+
+noiseTypeLabels = [
+    "IGN",
+    "Blue Noise",
+    "White Noise",
+    "Bayer"
+]
+
+# Make larger images of the noises
+for noise, label in zip(noiseTypes, noiseTypeLabels):
+    im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
+    im.save("out/_"+label+"_big.png")
