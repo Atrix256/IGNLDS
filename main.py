@@ -14,7 +14,7 @@ if False:
     whiteNoise = np.random.random(256)
     whiteNoise = whiteNoise.reshape((16, 16))
     im = Image.fromarray(np.uint8(whiteNoise*255.0))
-    im.save("out/white16x16.png")
+    im.save("source/white16x16.png")
 
 # Make IGN Texture
 if False:
@@ -25,7 +25,7 @@ if False:
         IGN[i] = (52.9829189 * ((0.06711056*float(x) + 0.00583715*float(y)) % 1)) % 1
     IGN = IGN.reshape((16, 16))
     im = Image.fromarray(np.uint8(IGN*255.0))
-    im.save("out/ign16x16.png")
+    im.save("source/ign16x16.png")
 
 # Load noise
 blueNoise = np.array(Image.open("source/bluenoise16x16.png")).astype(float) / 255.0
@@ -79,17 +79,39 @@ figure.savefig("out/_histogram.png", bbox_inches='tight')
 
 noiseTypes = [
     IGN,
-    blueNoise,
     whiteNoise,
+    blueNoise,
     bayer
 ]
 
 noiseTypeLabels = [
     "ign",
-    "blue",
     "white",
+    "blue",
     "bayer"
 ]
+
+# Make stochastic alpha test
+imout = Image.new('RGB', (512+10, 512+10), (255, 255, 255))
+for noise, label, noiseIndex in zip(noiseTypes, noiseTypeLabels, range(len(noiseTypes))):
+    forest = np.array(Image.open("source/forest.png")).astype(float) / 255.0
+    testsize = 16
+    startx = int((forest.shape[0] - testsize)/2)
+    starty = int((forest.shape[1] - testsize)/2)
+    opacity = 1.0 / 9.0
+    for ix in range(testsize):
+        for iy in range(testsize):
+            rng = noise[ix % 16, iy % 16]
+            if rng < opacity:
+                forest[startx + ix, starty + iy] = (1, 0, 1, 1)
+    im = Image.fromarray(np.uint8(forest*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
+    im_e = ImageDraw.Draw(im)
+    im_e.text((5,5), label, font=fnt, fill=(255,255,255,255))
+    # im.save("out/_transparency_"+label+".png")
+    imout.paste(im, ((noiseIndex%2)*266, int(noiseIndex/2)*266))
+
+imout.save("out/_transparency.png")
+            
 
 # Make larger images of the noises
 #for noise, label in zip(noiseTypes, noiseTypeLabels):
@@ -168,5 +190,3 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
     
     imout.save("out/_big_windows_"+label+".png")
 
-
-# TODO: use the source images for white noise and IGN, insteda of regenerating, to not invalidate what you've already made
