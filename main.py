@@ -80,13 +80,15 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
 regions = [
     (5,5),
     (10,7),
-    (12,8)
+    (12,8),
+    (2, 10)
 ]
 
 regionColors=[
     "#ff0000",
     "#00ff00",
-    "#0000ff"
+    "#0000ff",
+    "#ffff00"
 ]
 
 
@@ -94,41 +96,47 @@ regionColors=[
 for noise, label in zip(noiseTypes, noiseTypeLabels):
     im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST).convert('RGB')
     im_e = ImageDraw.Draw(im)
+
+    figure, axis = plt.subplots(len(regions))
+
+    xmin = 0
+    xmax = 1
+    y = 1
+    height = 1    
+    
     for region, regionColor, regionIndex in zip(regions, regionColors, range(len(regions))):
         im_e.rectangle([(region[0]*16, region[1]*16), ((region[0]+3)*16, (region[1]+3)*16)], outline=regionColor, width=3)
 
-        # TODO: make each plot a subplot, and save as one image!
+        axis[regionIndex].set_xlim(0,1)
+        axis[regionIndex].set_ylim(0,2)
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_xlim(0,1)
-        ax.set_ylim(0,10)
-
-        xmin = 0
-        xmax = 1
-        y = 5
-        height = 1
-
-        plt.hlines(y, xmin, xmax)
-        plt.vlines(xmin, y - height / 2., y + height / 2.)
-        plt.vlines(xmax, y - height / 2., y + height / 2.)
+        axis[regionIndex].hlines(y, xmin, xmax)
+        axis[regionIndex].vlines(xmin, y - height / 2., y + height / 2.)
+        axis[regionIndex].vlines(xmax, y - height / 2., y + height / 2.)
         
         for offset in range(0,9):
             offsetx = int(offset % 3)
             offsety = int(offset / 3)
             x = noise[region[0]+offsetx, region[1]+offsety]
 
-            plt.plot(x, y, 'o', ms = 10, color=regionColor)
+            axis[regionIndex].plot(x, y, 'o', ms = 10, color=regionColor)
 
-        plt.axis('off')
+        axis[regionIndex].axis('off')
 
-         # add numbers
-        plt.text(xmin - 0.01, y, '0', horizontalalignment='right')
-        plt.text(xmax + 0.01, y, '1', horizontalalignment='left')       
+        axis[regionIndex].text(xmin - 0.01, y, '0', horizontalalignment='right')
+        axis[regionIndex].text(xmax + 0.01, y, '1', horizontalalignment='left')       
 
-        fig.tight_layout()
-        fig.savefig("out/_big_windows_" + label + "_" + str(regionIndex) + ".dft.png", bbox_inches='tight')
-        plt.close(fig)
-        
-    im.save("out/_big_windows_"+label+".png")
+    figure.tight_layout()
+    figure.savefig("out/big_windows_" + label + "_" + str(regionIndex) + ".dft.png", bbox_inches='tight')
+
+    im2 = Image.open("out/big_windows_" + label + "_" + str(regionIndex) + ".dft.png")
+
+    imoutw = im.size[0] + im2.size[0]
+    imouth = max(im.size[1], im2.size[1])
+    imout = Image.new('RGB', (imoutw, imouth), (255, 255, 255))
+
+    imout.paste(im, (0, int((imouth - im.size[1])/2)))
+    imout.paste(im2, (im.size[0], int((imouth - im2.size[1])/2)))
+    
+    imout.save("out/_big_windows_"+label+".png")
 
