@@ -10,26 +10,28 @@ os.makedirs("out", exist_ok=True)
 fnt = ImageFont.truetype("arial.ttf", 40)
 
 # Make White Noise Texture
-whiteNoise = np.random.random(256)
-whiteNoise = whiteNoise.reshape((16, 16))
-im = Image.fromarray(np.uint8(whiteNoise*255.0))
-im.save("out/white16x16.png")
+if False:
+    whiteNoise = np.random.random(256)
+    whiteNoise = whiteNoise.reshape((16, 16))
+    im = Image.fromarray(np.uint8(whiteNoise*255.0))
+    im.save("out/white16x16.png")
 
 # Make IGN Texture
-IGN = np.empty(256)
-for i in range(256):
-    x = i % 16
-    y = int(i / 16)
-    IGN[i] = (52.9829189 * ((0.06711056*float(x) + 0.00583715*float(y)) % 1)) % 1
-IGN = IGN.reshape((16, 16))
-im = Image.fromarray(np.uint8(IGN*255.0))
-im.save("out/ign16x16.png")
+if False:
+    IGN = np.empty(256)
+    for i in range(256):
+        x = i % 16
+        y = int(i / 16)
+        IGN[i] = (52.9829189 * ((0.06711056*float(x) + 0.00583715*float(y)) % 1)) % 1
+    IGN = IGN.reshape((16, 16))
+    im = Image.fromarray(np.uint8(IGN*255.0))
+    im.save("out/ign16x16.png")
 
-# Load blue noise
+# Load noise
 blueNoise = np.array(Image.open("source/bluenoise16x16.png")).astype(float) / 255.0
-
-# Load bayer
 bayer = np.array(Image.open("source/bayer16x16.png"))[:,:,0].astype(float) / 255.0
+whiteNoise = np.array(Image.open("source/white16x16.png")).astype(float) / 255.0
+IGN = np.array(Image.open("source/ign16x16.png")).astype(float) / 255.0
 
 # make combined noise images
 imout = Image.new('RGB', (79, 22), (255, 255, 255))
@@ -167,3 +169,4 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
     imout.save("out/_big_windows_"+label+".png")
 
 
+# TODO: use the source images for white noise and IGN, insteda of regenerating, to not invalidate what you've already made
