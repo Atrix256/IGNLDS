@@ -4,8 +4,10 @@ import numpy as np
 import PIL
 from PIL import Image, ImageFont, ImageDraw
 import matplotlib.pyplot as plt
+import statistics
 
 os.makedirs("out", exist_ok=True)
+fnt = ImageFont.truetype("arial.ttf", 40)
 
 # Make White Noise Texture
 whiteNoise = np.random.random(256)
@@ -29,6 +31,21 @@ blueNoise = np.array(Image.open("source/bluenoise16x16.png")).astype(float) / 25
 # Load bayer
 bayer = np.array(Image.open("source/bayer16x16.png"))[:,:,0].astype(float) / 255.0
 
+# make combined noise images
+imout = Image.new('RGB', (79, 22), (255, 255, 255))
+imout.paste(Image.fromarray(np.uint8(IGN*255.0)), (3, 3))
+imout.paste(Image.fromarray(np.uint8(whiteNoise*255.0)), (22, 3))
+imout.paste(Image.fromarray(np.uint8(blueNoise*255.0)), (41, 3))
+imout.paste(Image.fromarray(np.uint8(bayer*255.0)), (60, 3))
+imout.save("out/_noises.png")
+
+imout = imout.resize((1264,352), resample=PIL.Image.NEAREST)
+imout_e = ImageDraw.Draw(imout)
+imout_e.text((128,5), "IGN", font=fnt, fill=(0,0,0,255))
+imout_e.text((432,5), "White", font=fnt, fill=(0,0,0,255))
+imout_e.text((740,5), "Blue", font=fnt, fill=(0,0,0,255))
+imout_e.text((1030,5), "Bayer", font=fnt, fill=(0,0,0,255))
+imout.save("out/_noisesBig.png")
 
 # Make histograms
 figure, axis = plt.subplots(2, 2)
@@ -73,9 +90,9 @@ noiseTypeLabels = [
 ]
 
 # Make larger images of the noises
-for noise, label in zip(noiseTypes, noiseTypeLabels):
-    im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
-    im.save("out/_big_"+label+".png")
+#for noise, label in zip(noiseTypes, noiseTypeLabels):
+#    im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
+#    im.save("out/_big_"+label+".png")
 
 regions = [
     (5,5),
@@ -91,7 +108,6 @@ regionColors=[
     "#ffff00"
 ]
 
-
 # Make numberlines of regions of noise images
 for noise, label in zip(noiseTypes, noiseTypeLabels):
     im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST).convert('RGB')
@@ -102,7 +118,7 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
     xmin = 0
     xmax = 1
     y = 1
-    height = 1    
+    height = 1
     
     for region, regionColor, regionIndex in zip(regions, regionColors, range(len(regions))):
         im_e.rectangle([(region[0]*16, region[1]*16), ((region[0]+3)*16, (region[1]+3)*16)], outline=regionColor, width=3)
@@ -113,13 +129,21 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
         axis[regionIndex].hlines(y, xmin, xmax)
         axis[regionIndex].vlines(xmin, y - height / 2., y + height / 2.)
         axis[regionIndex].vlines(xmax, y - height / 2., y + height / 2.)
+
+        regionvalues = np.empty(9)
         
         for offset in range(0,9):
             offsetx = int(offset % 3)
             offsety = int(offset / 3)
-            x = noise[region[0]+offsetx, region[1]+offsety]
+            regionvalues[offset] = noise[region[0]+offsetx, region[1]+offsety]
+            axis[regionIndex].plot(regionvalues[offset], y, 'o', ms = 10, color=regionColor)
 
-            axis[regionIndex].plot(x, y, 'o', ms = 10, color=regionColor)
+        regionvalues = np.sort(regionvalues)
+        distances = np.empty(9)
+        for i in range(0, 9):
+            distances[i] = (regionvalues[(i+1)%9] - regionvalues[i]) % 1
+
+        axis[regionIndex].set_title("Distance std. dev. = " + "{:.3f}".format(statistics.stdev(distances)))
 
         axis[regionIndex].axis('off')
 
@@ -133,10 +157,13 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
 
     imoutw = im.size[0] + im2.size[0]
     imouth = max(im.size[1], im2.size[1])
-    imout = Image.new('RGB', (imoutw, imouth), (255, 255, 255))
 
+    imout = Image.new('RGB', (imoutw, imouth), (255, 255, 255))
     imout.paste(im, (0, int((imouth - im.size[1])/2)))
     imout.paste(im2, (im.size[0], int((imouth - im2.size[1])/2)))
+
+    imout_e = ImageDraw.Draw(imout)
     
     imout.save("out/_big_windows_"+label+".png")
+
 
