@@ -6,6 +6,14 @@ from PIL import Image, ImageFont, ImageDraw
 import matplotlib.pyplot as plt
 import statistics
 
+def R2Mask(x, y):
+    # generalized golden ratio, from:
+    # http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
+    g = 1.32471795724474602596;
+    a1 = 1.0 / g;
+    a2 = 1.0 / (g * g);
+    return ((a1 * float(x)) + (a2 * float(y)))%1;
+
 os.makedirs("out", exist_ok=True)
 fnt = ImageFont.truetype("arial.ttf", 40)
 
@@ -27,11 +35,23 @@ if False:
     im = Image.fromarray(np.uint8(IGN*255.0))
     im.save("source/ign16x16.png")
 
+# Make R2 Texture
+if False:
+    R2 = np.empty(256)
+    for i in range(256):
+        x = i % 16
+        y = int(i / 16)
+        R2[i] = R2Mask(x,y)
+    R2 = R2.reshape((16, 16))
+    im = Image.fromarray(np.uint8(R2*255.0))
+    im.save("source/r216x16.png")
+
 # Load noise
 blueNoise = np.array(Image.open("source/bluenoise16x16.png")).astype(float) / 255.0
 bayer = np.array(Image.open("source/bayer16x16.png"))[:,:,0].astype(float) / 255.0
 whiteNoise = np.array(Image.open("source/white16x16.png")).astype(float) / 255.0
 IGN = np.array(Image.open("source/ign16x16.png")).astype(float) / 255.0
+R2 = np.array(Image.open("source/r216x16.png")).astype(float) / 255.0
 
 # make combined noise images
 imout = Image.new('RGB', (79, 22), (255, 255, 255))
@@ -81,14 +101,16 @@ noiseTypes = [
     IGN,
     whiteNoise,
     blueNoise,
-    bayer
+    bayer,
+    R2
 ]
 
 noiseTypeLabels = [
     "ign",
     "white",
     "blue",
-    "bayer"
+    "bayer",
+    "R2"
 ]
 
 # Make stochastic alpha test
