@@ -35,6 +35,17 @@ if False:
     im = Image.fromarray(np.uint8(IGN*255.0))
     im.save("source/ign16x16.png")
 
+# Make Plus Texture
+if False:
+    PlusLDG = np.empty(256)
+    for i in range(256):
+        x = i % 16
+        y = int(i / 16)
+        PlusLDG[i] = (((float(x) + 3.0*float(y))/5) % 1)
+    PlusLDG = PlusLDG.reshape((16, 16))
+    im = Image.fromarray(np.uint8(PlusLDG*255.0))
+    im.save("source/plus16x16.png")
+
 # Make R2 Texture
 if False:
     R2 = np.empty(256)
@@ -52,25 +63,30 @@ bayer = np.array(Image.open("source/bayer16x16.png"))[:,:,0].astype(float) / 255
 whiteNoise = np.array(Image.open("source/white16x16.png")).astype(float) / 255.0
 IGN = np.array(Image.open("source/ign16x16.png")).astype(float) / 255.0
 R2 = np.array(Image.open("source/r216x16.png")).astype(float) / 255.0
+PlusLDG = np.array(Image.open("source/plus16x16.png")).astype(float) / 255.0
 
 # make combined noise images
-imout = Image.new('RGB', (79, 22), (255, 255, 255))
+imout = Image.new('RGB', (117, 22), (255, 255, 255))
 imout.paste(Image.fromarray(np.uint8(IGN*255.0)), (3, 3))
 imout.paste(Image.fromarray(np.uint8(whiteNoise*255.0)), (22, 3))
 imout.paste(Image.fromarray(np.uint8(blueNoise*255.0)), (41, 3))
 imout.paste(Image.fromarray(np.uint8(bayer*255.0)), (60, 3))
+imout.paste(Image.fromarray(np.uint8(R2*255.0)), (79, 3))
+imout.paste(Image.fromarray(np.uint8(PlusLDG*255.0)), (98, 3))
 imout.save("out/_noises.png")
 
-imout = imout.resize((1264,352), resample=PIL.Image.NEAREST)
+imout = imout.resize((1844,352), resample=PIL.Image.NEAREST)
 imout_e = ImageDraw.Draw(imout)
 imout_e.text((128,5), "IGN", font=fnt, fill=(0,0,0,255))
 imout_e.text((432,5), "White", font=fnt, fill=(0,0,0,255))
 imout_e.text((740,5), "Blue", font=fnt, fill=(0,0,0,255))
 imout_e.text((1030,5), "Bayer", font=fnt, fill=(0,0,0,255))
+imout_e.text((1320,5), "R2", font=fnt, fill=(0,0,0,255))
+imout_e.text((1610,5), "Plus", font=fnt, fill=(0,0,0,255))
 imout.save("out/_noisesBig.png")
 
 # Make histograms
-figure, axis = plt.subplots(2, 2)
+figure, axis = plt.subplots(2, 3)
 
 figure.suptitle("16x16 Texture Histograms, 256 buckets")
 
@@ -94,6 +110,16 @@ axis[1,1].set_xlabel("Value")
 axis[1,1].set_ylabel("Count")
 axis[1,1].hist(bayer.reshape(256), 256, facecolor='blue', alpha=0.5)
 
+axis[0,2].set_title("R2")
+axis[0,2].set_xlabel("Value")
+axis[0,2].set_ylabel("Count")
+axis[0,2].hist(R2.reshape(256), 256, facecolor='blue', alpha=0.5)
+
+axis[1,2].set_title("Plus")
+axis[1,2].set_xlabel("Value")
+axis[1,2].set_ylabel("Count")
+axis[1,2].hist(PlusLDG.reshape(256), 256, facecolor='blue', alpha=0.5)
+
 figure.tight_layout()
 figure.savefig("out/_histogram.png", bbox_inches='tight')
 
@@ -102,7 +128,8 @@ noiseTypes = [
     whiteNoise,
     blueNoise,
     bayer,
-    R2
+    R2,
+    PlusLDG
 ]
 
 noiseTypeLabels = [
@@ -110,11 +137,12 @@ noiseTypeLabels = [
     "white",
     "blue",
     "bayer",
-    "R2"
+    "R2",
+    "Plus"
 ]
 
 # Make stochastic alpha test
-imout = Image.new('RGB', (512+10, 512+10), (255, 255, 255))
+imout = Image.new('RGB', (512+10, 768+15), (255, 255, 255))
 for noise, label, noiseIndex in zip(noiseTypes, noiseTypeLabels, range(len(noiseTypes))):
     forest = np.array(Image.open("source/forest.png")).astype(float) / 255.0
     testsize = 16
