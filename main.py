@@ -41,7 +41,14 @@ if False:
     for i in range(256):
         x = i % 16
         y = int(i / 16)
-        PlusLDG[i] = (((float(x) + 3.0*float(y))/5) % 1)
+        if False:
+            # 0/4, 1/4, 2/4, 3/4, 4/4. Average = 0.5
+            # useful if 1.0 is not the same as 0.0 in your logic
+            PlusLDG[i] = ((x + 3 * y) % 5) / 4
+        else:
+            # 0/5, 1/5, 2/5, 3/5, 4/5. Average = 0.4
+            # useful if 1.0 is the same as 0.0 in your logic
+            PlusLDG[i] = ((float(x) + 3 * float(y) + 0.5)/ 5) % 1
     PlusLDG = PlusLDG.reshape((16, 16))
     im = Image.fromarray(np.uint8(PlusLDG*255.0))
     im.save("source/plus16x16.png")
@@ -75,14 +82,14 @@ imout.paste(Image.fromarray(np.uint8(R2*255.0)), (79, 3))
 imout.paste(Image.fromarray(np.uint8(PlusLDG*255.0)), (98, 3))
 imout.save("out/_noises.png")
 
-imout = imout.resize((1844,352), resample=PIL.Image.NEAREST)
+imout = imout.resize((1872,352), resample=PIL.Image.NEAREST)
 imout_e = ImageDraw.Draw(imout)
-imout_e.text((128,5), "IGN", font=fnt, fill=(0,0,0,255))
-imout_e.text((432,5), "White", font=fnt, fill=(0,0,0,255))
-imout_e.text((740,5), "Blue", font=fnt, fill=(0,0,0,255))
-imout_e.text((1030,5), "Bayer", font=fnt, fill=(0,0,0,255))
-imout_e.text((1320,5), "R2", font=fnt, fill=(0,0,0,255))
-imout_e.text((1610,5), "Plus", font=fnt, fill=(0,0,0,255))
+imout_e.text((48,5), "IGN", font=fnt, fill=(0,0,0,255))
+imout_e.text((352,5), "White", font=fnt, fill=(0,0,0,255))
+imout_e.text((656,5), "Blue", font=fnt, fill=(0,0,0,255))
+imout_e.text((960,5), "Bayer", font=fnt, fill=(0,0,0,255))
+imout_e.text((1264,5), "R2", font=fnt, fill=(0,0,0,255))
+imout_e.text((1568,5), "Plus", font=fnt, fill=(0,0,0,255))
 imout.save("out/_noisesBig.png")
 
 # Make histograms
@@ -93,33 +100,33 @@ figure.suptitle("16x16 Texture Histograms, 256 buckets")
 axis[0,0].set_title("IGN")
 axis[0,0].set_xlabel("Value")
 axis[0,0].set_ylabel("Count")
-axis[0,0].hist(IGN.reshape(256), 256, facecolor='blue', alpha=0.5)
+axis[0,0].hist(IGN.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
 
 axis[1,0].set_title("Blue Noise")
 axis[1,0].set_xlabel("Value")
 axis[1,0].set_ylabel("Count")
-axis[1,0].hist(blueNoise.reshape(256), 256, facecolor='blue', alpha=0.5)
+axis[1,0].hist(blueNoise.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
 
 axis[0,1].set_title("White Noise")
 axis[0,1].set_xlabel("Value")
 axis[0,1].set_ylabel("Count")
-axis[0,1].hist(whiteNoise.reshape(256), 256, facecolor='blue', alpha=0.5)
+axis[0,1].hist(whiteNoise.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
 
 axis[1,1].set_title("Bayer")
 axis[1,1].set_xlabel("Value")
 axis[1,1].set_ylabel("Count")
-axis[1,1].hist(bayer.reshape(256), 256, facecolor='blue', alpha=0.5)
+axis[1,1].hist(bayer.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
 
 axis[0,2].set_title("R2")
 axis[0,2].set_xlabel("Value")
 axis[0,2].set_ylabel("Count")
-axis[0,2].hist(R2.reshape(256), 256, facecolor='blue', alpha=0.5)
+axis[0,2].hist(R2.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
 
 axis[1,2].set_title("Plus")
 axis[1,2].set_xlabel("Value")
 axis[1,2].set_ylabel("Count")
-axis[1,2].hist(PlusLDG.reshape(256), 256, facecolor='blue', alpha=0.5)
-
+axis[1,2].hist(PlusLDG.flatten(), bins=256, range=[0,1], histtype='stepfilled', color='blue')
+ 
 figure.tight_layout()
 figure.savefig("out/_histogram.png", bbox_inches='tight')
 
@@ -142,25 +149,28 @@ noiseTypeLabels = [
 ]
 
 # Make stochastic alpha test
-imout = Image.new('RGB', (512+10, 768+15), (255, 255, 255))
-for noise, label, noiseIndex in zip(noiseTypes, noiseTypeLabels, range(len(noiseTypes))):
-    forest = np.array(Image.open("source/forest.png")).astype(float) / 255.0
-    testsize = 16
-    startx = int((forest.shape[0] - testsize)/2)
-    starty = int((forest.shape[1] - testsize)/2)
-    opacity = 1.0 / 9.0
-    for ix in range(testsize):
-        for iy in range(testsize):
-            rng = noise[ix % 16, iy % 16]
-            if rng < opacity:
-                forest[startx + ix, starty + iy] = (1, 0, 1, 1)
-    im = Image.fromarray(np.uint8(forest*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
-    im_e = ImageDraw.Draw(im)
-    im_e.text((5,5), label, font=fnt, fill=(255,255,255,255))
-    # im.save("out/_transparency_"+label+".png")
-    imout.paste(im, ((noiseIndex%2)*266, int(noiseIndex/2)*266))
-
-imout.save("out/_transparency.png")
+imout = Image.new('RGB', (768+15, 512+10), (255, 255, 255))
+opacityIndex = 0
+for opacity in [0.1, 0.2, 0.3, 0.4]:
+    for noise, label, noiseIndex in zip(noiseTypes, noiseTypeLabels, range(len(noiseTypes))):
+        forest = np.array(Image.open("source/forest.png")).astype(float) / 255.0
+        testsize = 16
+        startx = int((forest.shape[0] - testsize)/2)
+        starty = int((forest.shape[1] - testsize)/2)
+        pixelWriteCount = 0
+        for ix in range(testsize):
+            for iy in range(testsize):
+                rng = noise[ix % 16, iy % 16]
+                if rng < opacity:
+                    forest[startx + ix, starty + iy] = (1, 0, 1, 1)
+                    pixelWriteCount = pixelWriteCount + 1
+        im = Image.fromarray(np.uint8(forest*255.0)).resize((256,256), resample=PIL.Image.NEAREST)
+        im_e = ImageDraw.Draw(im)
+        im_e.text((5,5), label + ": " + "{:.1f}".format(100 * pixelWriteCount / (testsize*testsize)) + "%", font=fnt, fill=(255,255,255,255))
+        # im.save("out/_transparency_"+label+"_" + str(opacityIndex) + ".png")
+        imout.paste(im, ((noiseIndex%3)*266, int(noiseIndex/3)*266))
+    imout.save("out/_transparency" + str(opacityIndex) + ".png")
+    opacityIndex = opacityIndex + 1
             
 
 # Make larger images of the noises
@@ -182,7 +192,7 @@ regionColors=[
     "#ffff00"
 ]
 
-# Make numberlines of regions of noise images
+# Make numberlines of 3x3 regions of noise images
 for noise, label in zip(noiseTypes, noiseTypeLabels):
     im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST).convert('RGB')
     im_e = ImageDraw.Draw(im)
@@ -240,3 +250,71 @@ for noise, label in zip(noiseTypes, noiseTypeLabels):
     
     imout.save("out/_big_windows_"+label+".png")
 
+regions = [
+    (5,5),
+    (10,7),
+    (12,7), # move this up to have an overlap example
+    (2, 10)
+]
+
+# Make numberlines of plus regions of noise images
+for noise, label in zip(noiseTypes, noiseTypeLabels):
+    im = Image.fromarray(np.uint8(noise*255.0)).resize((256,256), resample=PIL.Image.NEAREST).convert('RGB')
+    im_e = ImageDraw.Draw(im)
+
+    figure, axis = plt.subplots(len(regions))
+
+    xmin = 0
+    xmax = 1
+    y = 1
+    height = 1
+    
+    for region, regionColor, regionIndex in zip(regions, regionColors, range(len(regions))):
+        im_e.rectangle([(region[0]*16, (region[1]+1)*16), ((region[0]+3)*16, (region[1]+2)*16)], outline=regionColor, width=3)
+        im_e.rectangle([((region[0]+1)*16, region[1]*16), ((region[0]+2)*16, (region[1]+3)*16)], outline=regionColor, width=3)
+
+        axis[regionIndex].set_xlim(0,1)
+        axis[regionIndex].set_ylim(0,2)
+
+        axis[regionIndex].hlines(y, xmin, xmax)
+        axis[regionIndex].vlines(xmin, y - height / 2., y + height / 2.)
+        axis[regionIndex].vlines(xmax, y - height / 2., y + height / 2.)
+
+        regionvalues = np.empty(5)
+
+        count = 0
+        for offset in range(0,9):
+            offsetx = int(offset % 3)
+            offsety = int(offset / 3)
+            if (offsetx == 1 or offsety == 1):
+                regionvalues[count] = noise[region[0]+offsetx, region[1]+offsety]
+                axis[regionIndex].plot(regionvalues[count], y, 'o', ms = 10, color=regionColor)
+                count = count + 1
+
+        regionvalues = np.sort(regionvalues)
+        distances = np.empty(5)
+        for i in range(0, 5):
+            distances[i] = (regionvalues[(i+1)%5] - regionvalues[i]) % 1
+
+        axis[regionIndex].set_title("Distance std. dev. = " + "{:.3f}".format(statistics.stdev(distances)))
+
+        axis[regionIndex].axis('off')
+
+        axis[regionIndex].text(xmin - 0.01, y, '0', horizontalalignment='right')
+        axis[regionIndex].text(xmax + 0.01, y, '1', horizontalalignment='left')       
+
+    figure.tight_layout()
+    figure.savefig("out/big_windows_" + label + "_" + str(regionIndex) + ".plus.dft.png", bbox_inches='tight')
+
+    im2 = Image.open("out/big_windows_" + label + "_" + str(regionIndex) + ".plus.dft.png")
+
+    imoutw = im.size[0] + im2.size[0]
+    imouth = max(im.size[1], im2.size[1])
+
+    imout = Image.new('RGB', (imoutw, imouth), (255, 255, 255))
+    imout.paste(im, (0, int((imouth - im.size[1])/2)))
+    imout.paste(im2, (im.size[0], int((imouth - im2.size[1])/2)))
+
+    imout_e = ImageDraw.Draw(imout)
+    
+    imout.save("out/_big_windows_"+label+".plus.png")
